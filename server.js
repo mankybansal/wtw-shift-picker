@@ -7,7 +7,7 @@ console.log("Version 1.0 Beta");
 
 if (args[2] == "-live") {
     console.log("\x1b[35m%s\x1b[0m", "*** Running in LIVE mode. ***");
-    confirmClass = "btn-succ";
+    confirmClass = "btn-success";
 } else {
     console.log("\x1b[36m%s\x1b[0m", "*** Running in DEBUG mode. ***");
     confirmClass = "btn-danger";
