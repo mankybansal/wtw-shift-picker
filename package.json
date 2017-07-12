@@ -1,0 +1,28 @@
+{
+  "name": "wtw-shift-picker",
+  "version": "1.0.0",
+  "description": "WhenToWork Shift Picker",
+  "main": "server.js",
+  "dependencies": {
+    "selenium-webdriver": "^3.4.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mankybansal/wtw-shift-picker.git"
+  },
+  "keywords": [
+    "Bot",
+    "Selenium"
+  ],
+  "author": "Mayank Bansal",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mankybansal/wtw-shift-picker/issues"
+  },
+  "homepage": "https://github.com/mankybansal/wtw-shift-picker#readme"
+}
