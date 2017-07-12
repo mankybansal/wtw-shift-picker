@@ -11,12 +11,13 @@ Replace the webdriver if using a different browser or different operating system
 ### Running
 The app is in default ```debug mode```. To run, simply
 ```
-$ node server.js
+$ node server.js -url default
 ```
+Specify the ```-url``` by replacing ```default``` with the new date tradeboard page url
 
 To run in ```live mode``` use the ```-live``` param as follows
 ```
-$ node server.js -live
+$ node server.js -url [url] -live
 ```
 
 ### Authors
