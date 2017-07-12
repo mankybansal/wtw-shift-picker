@@ -1,19 +1,34 @@
 var webdriver = require('selenium-webdriver');
 var browser = new webdriver.Builder().usingServer().withCapabilities({'browserName': 'chrome'}).build();
 
-function automate() {
-    browser.get('https://www5.whentowork.com/cgi-bin/w2wE.dll/emptradeboard?SID=848771569420C');
+var confirmClass;
+var args = process.argv.slice(2);
 
+if (args[0] == "-live") {
+    console.log("\n*** Running in LIVE mode. ***\n");
+    confirmClass = "btn-success";
+} else {
+    console.log("\n*** Running in DEBUG mode. ***\n");
+    confirmClass = "btn-danger";
+}
+
+console.reset = function () {
+    return process.stdout.write('\033c');
+};
+
+function automate() {
+
+    browser.get('https://www5.whentowork.com/cgi-bin/w2wE.dll/emptradeboard?SID=1697883600420C');
     var count = 0;
+
     browser.findElements(webdriver.By.className("s2")).then(function (elements) {
         count = elements.length;
     }).then(function () {
-            console.log("\n**********************\n" + (count - 1) + " DROPPED SHIFTS FOUND \n**********************\n");
+        console.log("\n**********************\n" + (count - 1) + " DROPPED SHIFTS FOUND \n**********************\n");
 
+        if (count > 1) {
             console.log("------------------------------------------------");
-
-            for (var i = 1; i < 2; i++) {
-
+            for (var i = 1; i < count; i++) {
                 getElement(i, function (myIndex, myElement) {
                     //console.log(myElement);
                     myElement.getText().then(function (text) {
@@ -32,9 +47,8 @@ function automate() {
 
                                 browser.findElement(webdriver.By.xpath(xpath)).then(function (confirmElement) {
                                     confirmElement.click();
-
-                                    browser.findElement(webdriver.By.className("btn-danger")).then(function (confirmSureElement) {
-//TODO: IF DON'T WANT SHIFT CANCEL AND CLOSE
+                                    browser.findElement(webdriver.By.className(confirmClass)).then(function (confirmSureElement) {
+                                        //TODO: IF DON'T WANT SHIFT CANCEL AND CLOSE
 
                                         confirmSureElement.click();
                                         browser.getAllWindowHandles().then(function (handles) {
@@ -49,20 +63,10 @@ function automate() {
 
                 });
             }
-            //setTimeout(automate, 3500);
         }
-    );
 
-    /*
-
-     browser.findElement(webdriver.By.xpath(xpath)).getText().then(function (text) {
-     console.log(" ---- " + text);
-     });*!/
-
-
-     console.log(browser.getPageSource());
-     });
-     });*/
+        setTimeout(automate, 3500);
+    });
 }
 
 function getElement(sourceIndex, callback) {
@@ -73,5 +77,5 @@ function getElement(sourceIndex, callback) {
         });
     })
 }
+
 automate();
-//setInterval(automate, 2000);
