@@ -20,7 +20,7 @@
     "Selenium"
   ],
   "author": "Mayank Bansal",
-  "license": "ISC",
+  "license": "Apache 2.0",
   "bugs": {
     "url": "https://github.com/mankybansal/wtw-shift-picker/issues"
   },
