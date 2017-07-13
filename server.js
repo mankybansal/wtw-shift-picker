@@ -1,8 +1,15 @@
-var args, webdriver, browser, confirmClass, baseURL;
+var timeout,args, webdriver, browser, confirmClass, baseURL;
 args = process.argv.slice(2);
 
 console.log("\x1b[33m%s\x1b[0m", "\n----------------------------\nWhenToWork Shift Picking Bot\n----------------------------");
 console.log("Version 1.1 Dev");
+
+if (args[3] == "-timeout"){
+    timeout = args[4];
+
+}else {
+    timeout = 5000;
+}
 
 if (args[2] == "-live") {
     console.log("\x1b[35m%s\x1b[0m", "*** Running in LIVE mode. ***");
@@ -30,6 +37,8 @@ console.reset = function () {
     return process.stdout.write('\033c');
 };
 
+//PRINT TIMEOUT
+console.log("\x1b[33m%s\x1b[0m", "TIMEOUT: ", (timeout/1000) + ".000s");
 
 function exitHandler(options, err) {
     if (err && options.error) {
@@ -61,7 +70,7 @@ function automate() {
 
     browser.get(baseURL);
     var count = 0;
-    var refresh = setTimeout(automate, 3000);
+    var refresh = setTimeout(automate, timeout);
 
     browser.findElements(webdriver.By.css(".s2, .s3")).then(function (elements) {
         count = elements.length;
