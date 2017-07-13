@@ -1,7 +1,5 @@
-var webdriver, browser, confirmClass,
-    //baseURL = "https://www5.whentowork.com/cgi-bin/w2wE.dll/emptradeboard?SID=1697883600420C&Date=07/09/2017";
-    baseURL = "https://www5.whentowork.com/cgi-bin/w2wE.dll/emptradeboard?SID=1535014173420C&Date=08/13/2017";
-var args = process.argv.slice(2);
+var counter = 0, args, webdriver, browser, confirmClass, baseURL;
+args = process.argv.slice(2);
 
 console.log("\x1b[33m%s\x1b[0m", "\n----------------------------\nWhenToWork Shift Picking Bot\n----------------------------");
 console.log("Version 1.1 Beta");
@@ -9,9 +7,11 @@ console.log("Version 1.1 Beta");
 if (args[2] == "-live") {
     console.log("\x1b[35m%s\x1b[0m", "*** Running in LIVE mode. ***");
     confirmClass = "btn-success";
+    baseURL = "https://www5.whentowork.com/cgi-bin/w2wE.dll/emptradeboard?SID=1697883600420C&Date=07/09/2017";
 } else {
     console.log("\x1b[36m%s\x1b[0m", "*** Running in DEBUG mode. ***");
     confirmClass = "btn-danger";
+    baseURL = "https://www5.whentowork.com/cgi-bin/w2wE.dll/emptradeboard?SID=1535014173420C&Date=08/13/2017";
 }
 
 if (args[0] == "-url") {
@@ -31,13 +31,15 @@ console.reset = function () {
 };
 
 process.on('SIGINT', function() {
-    console.log( "\nStopping wtw-shift-picker" );
+    console.log( "\n\nStopping wtw-shift-picker..." );
     browser.close();
 
-    console.log( "Browser Closed. Exiting..." );
+    console.log("\x1b[31m%s\x1b[0m","EXITED\n");
     // some other closing procedures go here
     process.exit( );
 });
+
+var start = new Date();
 
 function automate() {
 
@@ -47,10 +49,10 @@ function automate() {
     browser.findElements(webdriver.By.css(".s2, .s3")).then(function (elements) {
         count = elements.length;
     }).then(function () {
-        console.log("\x1b[32m","\n**********************\n" + (count-2) + " DROPPED SHIFTS FOUND \n**********************");
-        console.log("\x1b[0m");
+        console.log("\x1b[36m", ("\nTime elapsed: " + ((new Date().getTime() - start.getTime())/1000) + "s"));
+        console.log("\x1b[32m%s\x1b[0m",("**********************\n" + (count-2) + " DROPPED SHIFTS FOUND \n**********************"));
 
-        if (count >2) {
+        if (count > 2) {
             console.log("------------------------------------------------");
             for (var i = 2; i < count; i++) {
                 getElement(browser, i, function (myIndex, myElement) {
