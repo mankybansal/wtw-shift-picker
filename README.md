@@ -30,7 +30,7 @@ The app requires ```forever``` to be installed as it restarts the application fr
 
 To run using ```forever```, 
 ```
-$ [sudo] forver server.js -url [url] [-live] [-timeout] [timeout]
+$ [sudo] forever server.js -url [url] [-live] [-timeout] [timeout]
 ```
 
 ###Stopping/Errors
