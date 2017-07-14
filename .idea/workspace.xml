@@ -2,8 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="3928bfd5-30d7-4292-9f63-c0fcca218b5d" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/README.md" afterPath="$PROJECT_DIR$/README.md" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/server.js" afterPath="$PROJECT_DIR$/server.js" />
     </list>
     <ignored path="$PROJECT_DIR$/.tmp/" />
@@ -22,15 +20,14 @@
       <file leaf-file-name="server.js" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/server.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="255">
-              <caret line="43" column="1" lean-forward="true" selection-start-line="43" selection-start-column="1" selection-end-line="43" selection-end-column="1" />
+            <state relative-caret-position="-506">
+              <caret line="22" column="14" lean-forward="false" selection-start-line="22" selection-start-column="14" selection-end-line="22" selection-end-column="18" />
               <folding>
-                <element signature="e#502#1063#0" expanded="false" />
+                <element signature="n#!!block;n#getParameterByName#0" expanded="false" />
+                <element signature="e#1103#1664#0" expanded="false" />
                 <element signature="n#!!block;n#color#0" expanded="false" />
-                <element signature="n#!!block;n#init#0" expanded="false" />
                 <element signature="n#!!block;n#exitHandler#0" expanded="false" />
-                <element signature="e#3641#3681#0" expanded="false" />
-                <element signature="e#3886#3926#0" expanded="false" />
+                <element signature="n#!!block;n#automate#0" expanded="false" />
                 <element signature="n#!!block;n#getElement#0" expanded="false" />
               </folding>
             </state>
@@ -72,6 +69,7 @@
       <find>url</find>
       <find>confirmClass</find>
       <find>xpath</find>
+      <find>path</find>
     </findStrings>
     <replaceStrings>
       <replace>webDriver</replace>
@@ -241,12 +239,12 @@
       <option name="presentableId" value="Default" />
       <updated>1499833403273</updated>
       <workItem from="1499833406370" duration="13632000" />
-      <workItem from="1499852799993" duration="25371000" />
+      <workItem from="1499852799993" duration="30786000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="39003000" />
+    <option name="totallyTimeSpent" value="44418000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="0" width="1280" height="800" extended-state="0" />
@@ -286,12 +284,11 @@
         <state relative-caret-position="135">
           <caret line="9" column="31" lean-forward="false" selection-start-line="9" selection-start-column="31" selection-end-line="9" selection-end-column="31" />
           <folding>
-            <element signature="e#502#1063#0" expanded="false" />
+            <element signature="n#!!block;n#getParameterByName#0" expanded="false" />
+            <element signature="e#1103#1664#0" expanded="false" />
             <element signature="n#!!block;n#color#0" expanded="false" />
-            <element signature="n#!!block;n#init#0" expanded="false" />
             <element signature="n#!!block;n#exitHandler#0" expanded="false" />
-            <element signature="e#3641#3681#0" expanded="false" />
-            <element signature="e#3886#3926#0" expanded="false" />
+            <element signature="n#!!block;n#automate#0" expanded="false" />
             <element signature="n#!!block;n#getElement#0" expanded="false" />
           </folding>
         </state>
@@ -359,15 +356,14 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/server.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="255">
-          <caret line="43" column="1" lean-forward="true" selection-start-line="43" selection-start-column="1" selection-end-line="43" selection-end-column="1" />
+        <state relative-caret-position="-506">
+          <caret line="22" column="14" lean-forward="false" selection-start-line="22" selection-start-column="14" selection-end-line="22" selection-end-column="18" />
           <folding>
-            <element signature="e#502#1063#0" expanded="false" />
+            <element signature="n#!!block;n#getParameterByName#0" expanded="false" />
+            <element signature="e#1103#1664#0" expanded="false" />
             <element signature="n#!!block;n#color#0" expanded="false" />
-            <element signature="n#!!block;n#init#0" expanded="false" />
             <element signature="n#!!block;n#exitHandler#0" expanded="false" />
-            <element signature="e#3641#3681#0" expanded="false" />
-            <element signature="e#3886#3926#0" expanded="false" />
+            <element signature="n#!!block;n#automate#0" expanded="false" />
             <element signature="n#!!block;n#getElement#0" expanded="false" />
           </folding>
         </state>

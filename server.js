@@ -1,15 +1,39 @@
 var start, refresh, count, args, argIndex, webDriver, browser;
 
 var params = {
-    url: "https://www5.whentowork.com/cgi-bin/w2wE.dll/emptradeboard?SID=1535014173420C&Date=08/23/2017",
+    url: null,
+    debugging: false,
     timeout: 5000,
     delay: 0,
     live: null,
     confirmClass: "btn-danger",
     xPaths: {
-        pickUpShift: "/html/body/div[1]/table[2]/tbody/tr[2]/td/b/a"
+        pickUpShift: "/html/body/div[1]/table[2]/tbody/tr[2]/td/b/a",
+        usernameInput: "/html/body/form/div[2]/div[1]/input[1]",
+        passwordInput: "/html/body/form/div[2]/div[1]/input[2]",
+        loginSubmit: "/html/body/form/div[2]/div[2]/input",
+        tradesTab: "//*[@id=\"emptop\"]/tbody/tr/td[5]"
+    },
+    user: {
+        username: null,
+        password: null,
+        sessionID: null
+    },
+    tradeboard: {
+        date: null
     }
 };
+
+function getParameterByName(name, callback) {
+    browser.getCurrentUrl().then(function (currentUrl) {
+        name = name.replace(/[\[\]]/g, "\\$&");
+        var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+            results = regex.exec(currentUrl);
+        if (!results) return null;
+        if (!results[2]) return '';
+        callback(decodeURIComponent(results[2].replace(/\+/g, " ")));
+    });
+}
 
 var colors = {
     FgBlack: "\x1b[30m",
@@ -46,17 +70,13 @@ function init() {
     // SET EXIT HANDLERS
     process.on('exit', exitHandler.bind(null, {cleanUp: false}));
     process.on('SIGINT', exitHandler.bind(null, {cleanUp: true}));
-    process.on('uncaughtException', exitHandler.bind(null, {cleanUp: false, restart: false, error: true}));
+    process.on('uncaughtException', exitHandler.bind(null, {cleanUp: false, error: true}));
 
     start = new Date();
     args = process.argv.slice(2);
 
     console.log(color(colors.FgYellow, "\n----------------------------\nWhenToWork Shift Picking Bot"));
-    console.log("Version 1.3 Beta");
-
-    // URL
-    if ((argIndex = args.indexOf("-url")) !== -1)
-        params.url = args[argIndex + 1];
+    console.log("Version 1.4 Beta");
 
     // TIMEOUT
     if ((argIndex = args.indexOf("-timeout")) !== -1)
@@ -70,16 +90,43 @@ function init() {
     if (args.indexOf("-live") !== -1) {
         console.log(color(colors.FgMagenta, "Running in LIVE mode"));
         params.confirmClass = "btn-success";
-        params.url = "https://www5.whentowork.com/cgi-bin/w2wE.dll/emptradeboard?SID=1697883600420C&Date=07/16/2017";
-    } else
+    } else {
         console.log(color(colors.FgCyan, "Running in DEBUG mode"));
+        params.tradeboard.date = "08/13/2017"
+    }
+
+    // DATE
+    if ((argIndex = args.indexOf("-date")) !== -1) {
+       params.tradeboard.date = args[argIndex + 1];
+    }
+
+    // DEBUGGING
+    if (args.indexOf("-debug") !== -1) {
+       params.debugging = true;
+    }
+
+    // USERNAME
+    if ((argIndex = args.indexOf("-u")) !== -1) {
+       params.user.username = args[argIndex + 1];
+    }
+
+    // PASSWORD
+    if ((argIndex = args.indexOf("-p")) !== -1) {
+       params.user.password = args[argIndex + 1];
+    }
 
     // INIT DRIVER
     webDriver = require('selenium-webDriver');
     browser = new webDriver.Builder().usingServer().withCapabilities({'browserName': 'chrome'}).build();
 
-    // PRINT URL
-    console.log(color(colors.FgYellow, "-URL:      "), params.url);
+    // PRINT USERNAME
+    console.log(color(colors.FgYellow, "-USER:     "), params.user.username);
+
+    // PRINT DEBUG
+    console.log(color(colors.FgYellow, "-DEBUG:    "), params.debugging);
+
+    // PRINT DATE
+    console.log(color(colors.FgYellow, "-DATE:     "), params.tradeboard.date);
 
     // PRINT TIMEOUT
     console.log(color(colors.FgYellow, "-TIMEOUT:  "), (params.timeout / 1000) + ".000s");
@@ -90,20 +137,17 @@ function init() {
     console.log(color(colors.FgYellow, "----------------------------"));
 
     // START AUTOMATION
-    setTimeout(automate, params.delay);
+    setTimeout(login, params.delay);
 }
 
 function exitHandler(options, err) {
-    if (err && options.error) {
+    if (err && options.error && params.debugging) {
         console.log("\n*** ERROR ***");
-        console.log(err.stack);
+        console.log(color(colors.FgRed, err.stack));
+        console.log("\nStopping forever...\n");
         var exec = require('child_process').exec;
         var cmd = 'forever stopall';
-        exec(cmd, function (error, stdout, stderr) {
-            console.log("\n\nStopping forever...");
-        });
-
-        process.exit(0);
+        exec(cmd);
     }
 
     if (options.cleanUp) {
@@ -111,6 +155,29 @@ function exitHandler(options, err) {
         browser.quit();
         console.log(color(colors.FgRed, "EXITED"));
     }
+}
+
+function login() {
+    browser.get("https://whentowork.com/logins.htm");
+    browser.findElement(webDriver.By.xpath(params.xPaths.usernameInput)).sendKeys(params.user.username).then(function () {
+        browser.findElement(webDriver.By.xpath(params.xPaths.passwordInput)).sendKeys(params.user.password).then(function () {
+            browser.findElement(webDriver.By.xpath(params.xPaths.loginSubmit)).then(function (loginSubmit) {
+                loginSubmit.click().then(function () {
+                    browser.findElement(webDriver.By.xpath(params.xPaths.tradesTab)).then(function (tradesTab) {
+                        tradesTab.click().then(function () {
+                            getParameterByName("SID", function (sessionID) {
+                                params.user.sessionID = sessionID;
+                                params.url = "https://www5.whentowork.com/cgi-bin/w2wE.dll/emptradeboard?SID=" + params.user.sessionID;
+                                if(params.tradeboard.date)
+                                    params.url += "&Date=" + params.tradeboard.date;
+                                automate();
+                            });
+                        });
+                    });
+                });
+            });
+        });
+    })
 }
 
 function automate() {
@@ -203,4 +270,3 @@ init();
 
 // TODO: FIX IF SHIFT ALREADY EXISTS, ADD TO STACK AND TRY NEXT ONE
 // TODO: IF DON'T WANT SHIFT CANCEL AND CLOSE
-// TODO: LOGIN & DATE
