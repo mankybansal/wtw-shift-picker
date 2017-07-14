@@ -33,7 +33,7 @@ To run using ```forever```,
 $ [sudo] forever server.js -url [url] [-live] [-timeout] [timeout]
 ```
 
-###Stopping/Errors
+### Stopping / Errors
 If the app crashes and didn't stop ```forever```, then
 ```
 $ [sudo] killall -9 node

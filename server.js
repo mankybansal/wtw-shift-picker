@@ -1,44 +1,97 @@
-var timeout,args, webdriver, browser, confirmClass, baseURL;
-args = process.argv.slice(2);
+var start, refresh, count, args, argIndex, webDriver, browser;
 
-console.log("\x1b[33m%s\x1b[0m", "\n----------------------------\nWhenToWork Shift Picking Bot\n----------------------------");
-console.log("Version 1.1 Dev");
-
-if (args[3] == "-timeout"){
-    timeout = args[4];
-
-}else {
-    timeout = 5000;
-}
-
-if (args[2] == "-live") {
-    console.log("\x1b[35m%s\x1b[0m", "*** Running in LIVE mode. ***");
-    confirmClass = "btn-success";
-    baseURL = "https://www5.whentowork.com/cgi-bin/w2wE.dll/emptradeboard?SID=1697883600420C&Date=07/09/2017";
-} else {
-    console.log("\x1b[36m%s\x1b[0m", "*** Running in DEBUG mode. ***");
-    confirmClass = "btn-danger";
-    baseURL = "https://www5.whentowork.com/cgi-bin/w2wE.dll/emptradeboard?SID=1535014173420C&Date=08/13/2017";
-}
-
-if (args[0] == "-url") {
-    if (args[1] != "default")
-        baseURL = args[1];
-    console.log("\x1b[33m%s\x1b[0m", "URL: " + baseURL);
-
-    webdriver = require('selenium-webdriver');
-    browser = new webdriver.Builder().usingServer().withCapabilities({'browserName': 'chrome'}).build();
-} else {
-    console.log('\x1b[31m%s\x1b[0m', "\nERROR: Must specify base URL\n");
-    process.exit()
-}
-
-console.reset = function () {
-    return process.stdout.write('\033c');
+var params = {
+    url: "https://www5.whentowork.com/cgi-bin/w2wE.dll/emptradeboard?SID=1535014173420C&Date=08/23/2017",
+    timeout: 5000,
+    delay: 0,
+    live: null,
+    confirmClass: "btn-danger",
+    xPaths: {
+        pickUpShift: "/html/body/div[1]/table[2]/tbody/tr[2]/td/b/a"
+    }
 };
 
-//PRINT TIMEOUT
-console.log("\x1b[33m%s\x1b[0m", "TIMEOUT: ", (timeout/1000) + ".000s");
+var colors = {
+    FgBlack: "\x1b[30m",
+    FgRed: "\x1b[31m",
+    FgGreen: "\x1b[32m",
+    FgYellow: "\x1b[33m",
+    FgBlue: "\x1b[34m",
+    FgMagenta: "\x1b[35m",
+    FgCyan: "\x1b[36m",
+    FgWhite: "\x1b[37m",
+    Reset: "\x1b[0m",
+    Bright: "\x1b[1m",
+    Dim: "\x1b[2m",
+    Underscore: "\x1b[4m",
+    Blink: "\x1b[5m",
+    Reverse: "\x1b[7m",
+    Hidden: "\x1b[8m",
+    BgBlack: "\x1b[40m",
+    BgRed: "\x1b[41m",
+    BgGreen: "\x1b[42m",
+    BgYellow: "\x1b[43m",
+    BgBlue: "\x1b[44m",
+    BgMagenta: "\x1b[45m",
+    BgCyan: "\x1b[46m",
+    BgWhite: "\x1b[47m"
+};
+
+function color(color, text) {
+    return (color + text + colors.Reset);
+}
+
+function init() {
+
+    // SET EXIT HANDLERS
+    process.on('exit', exitHandler.bind(null, {cleanUp: false}));
+    process.on('SIGINT', exitHandler.bind(null, {cleanUp: true}));
+    process.on('uncaughtException', exitHandler.bind(null, {cleanUp: false, restart: false, error: true}));
+
+    start = new Date();
+    args = process.argv.slice(2);
+
+    console.log(color(colors.FgYellow, "\n----------------------------\nWhenToWork Shift Picking Bot"));
+    console.log("Version 1.3 Beta");
+
+    // URL
+    if ((argIndex = args.indexOf("-url")) !== -1)
+        params.url = args[argIndex + 1];
+
+    // TIMEOUT
+    if ((argIndex = args.indexOf("-timeout")) !== -1)
+        params.timeout = args[argIndex + 1];
+
+    // DELAY
+    if ((argIndex = args.indexOf("-delay")) !== -1)
+        params.delay = args[argIndex + 1];
+
+    // LIVE
+    if (args.indexOf("-live") !== -1) {
+        console.log(color(colors.FgMagenta, "Running in LIVE mode"));
+        params.confirmClass = "btn-success";
+        params.url = "https://www5.whentowork.com/cgi-bin/w2wE.dll/emptradeboard?SID=1697883600420C&Date=07/16/2017";
+    } else
+        console.log(color(colors.FgCyan, "Running in DEBUG mode"));
+
+    // INIT DRIVER
+    webDriver = require('selenium-webDriver');
+    browser = new webDriver.Builder().usingServer().withCapabilities({'browserName': 'chrome'}).build();
+
+    // PRINT URL
+    console.log(color(colors.FgYellow, "-URL:      "), params.url);
+
+    // PRINT TIMEOUT
+    console.log(color(colors.FgYellow, "-TIMEOUT:  "), (params.timeout / 1000) + ".000s");
+
+    // PRINT DELAY
+    console.log(color(colors.FgYellow, "-DELAY:    "), (params.delay / 1000) + ".000s");
+
+    console.log(color(colors.FgYellow, "----------------------------"));
+
+    // START AUTOMATION
+    setTimeout(automate, params.delay);
+}
 
 function exitHandler(options, err) {
     if (err && options.error) {
@@ -56,34 +109,27 @@ function exitHandler(options, err) {
     if (options.cleanUp) {
         console.log("\n\nStopping wtw-shift-picker...");
         browser.quit();
-        console.log("\x1b[31m%s\x1b[0m", "EXITED\n");
+        console.log(color(colors.FgRed, "EXITED"));
     }
 }
 
-process.on('exit', exitHandler.bind(null, {cleanUp: false}));
-process.on('SIGINT', exitHandler.bind(null, {cleanUp: true}));
-process.on('uncaughtException', exitHandler.bind(null, {cleanUp: false, error: true}));
-
-var start = new Date();
-
 function automate() {
 
-    browser.get(baseURL);
-    var count = 0;
-    var refresh = setTimeout(automate, timeout);
+    browser.get(params.url);
+    count = 0;
+    refresh = setTimeout(automate, params.timeout);
 
-    browser.findElements(webdriver.By.css(".s2, .s3")).then(function (elements) {
+    browser.findElements(webDriver.By.css(".s2, .s3")).then(function (elements) {
         count = elements.length;
     })
         .then(function () {
-            console.log("\x1b[36m", ("\nTime elapsed: " + ((new Date().getTime() - start.getTime()) / 1000) + "s"));
-            console.log("\x1b[32m%s\x1b[0m", ("**********************\n" + (count - 2) + " DROPPED SHIFTS FOUND \n**********************"));
+            console.log(color(colors.FgCyan, ("\nTime elapsed: " + ((new Date().getTime() - start.getTime()) / 1000) + "s")));
+            console.log(color(colors.FgGreen, ("**********************\n" + (count - 2) + " DROPPED SHIFTS FOUND \n**********************")));
 
             if (count > 2) {
                 console.log("------------------------------------------------");
-                //for (var i = 2; i < count; i++) {
                 getElement(browser, 2, function (myIndex, myElement) {
-                    //console.log(myElement);
+
                     myElement.getText().then(function (text) {
                         console.log(" " + (myIndex - 1) + ". " + text);
                     });
@@ -92,31 +138,36 @@ function automate() {
 
                     browser.getAllWindowHandles().then(function (handles) {
                         browser.switchTo().window(handles[1]).then(function () {
-                            browser.findElement(webdriver.By.className("titlebox")).getText().then(function (text) {
-                                console.log("\x1b[32m", "   " + text, "\x1b[0m");
+                            browser.findElement(webDriver.By.className("titlebox")).getText().then(function (text) {
+
+                                console.log(color(colors.FgGreen, ("   " + text)));
                                 console.log("------------------------------------------------");
 
-                                var xpath = "/html/body/div[1]/table[2]/tbody/tr[2]/td/b/a";
-
-                                browser.findElement(webdriver.By.xpath(xpath)).then(function (confirmElement) {
+                                browser.findElement(webDriver.By.xpath(params.xPaths.pickUpShift)).then(function (confirmElement) {
                                     confirmElement.click();
 
-                                    browser.findElement(webdriver.By.className(confirmClass)).then(function (confirmSureElement) {
-                                        //TODO: IF DON'T WANT SHIFT CANCEL AND CLOSE
+                                    browser.findElement(webDriver.By.className(params.confirmClass)).then(function (confirmSureElement) {
+
+                                        console.log("\nAttempting Shift Pickup...");
+
                                         confirmSureElement.click().then(function () {
                                             browser.getAllWindowHandles().then(function (handles) {
-                                                //console.log(handles);
+
+                                                console.log(color(colors.FgGreen, "PICKED UP SHIFT"));
+
                                                 browser.switchTo().window(handles[0]);
-                                                //if (args[2] == "-live") {
                                                 clearTimeout(refresh);
-                                                console.log("\n\nStopping wtw-shift-picker...");
+
+                                                console.log("\nStopping wtw-shift-picker...");
                                                 browser.quit().then(function () {
-                                                    console.log("\x1b[31m%s\x1b[0m", "EXITED\n");
+                                                    console.log(color(colors.FgRed, "EXITED"));
+                                                    console.log("\nRestarting wtw-shift-picker...");
                                                     setTimeout(function () {
-                                                        process.exit()
+                                                        console.log(color(colors.FgGreen, "RESTARTED\n"));
+                                                        process.exit();
                                                     }, 5000);
                                                 });
-                                                //}
+
                                             });
                                         });
                                     });
@@ -124,16 +175,15 @@ function automate() {
                             });
                         })
                     });
-
                 });
-                //}
             }
 
-            if(count == 0){
+            if (count == 0) {
                 clearTimeout(refresh);
-                console.log("\x1b[31m%s\x1b[0m", "RATE LIMITED.");
+                console.log(color(colors.FgRed, "RATE LIMITED."));
                 console.log("\n\nRestarting in 15 seconds...");
                 setTimeout(function () {
+                    console.log(color(colors.FgGreen, "RESTARTED\n"));
                     process.exit()
                 }, 15000);
             }
@@ -141,7 +191,7 @@ function automate() {
 }
 
 function getElement(browser, sourceIndex, callback) {
-    browser.findElements(webdriver.By.css(".s2, .s3")).then(function (elements) {
+    browser.findElements(webDriver.By.css(".s2, .s3")).then(function (elements) {
         elements.forEach(function (value, index) {
             if (index == sourceIndex)
                 return callback(sourceIndex, value);
@@ -149,4 +199,8 @@ function getElement(browser, sourceIndex, callback) {
     })
 }
 
-automate();
+init();
+
+// TODO: FIX IF SHIFT ALREADY EXISTS, ADD TO STACK AND TRY NEXT ONE
+// TODO: IF DON'T WANT SHIFT CANCEL AND CLOSE
+// TODO: LOGIN & DATE
