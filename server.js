@@ -6,6 +6,7 @@ var params = {
     timeout: 5000,
     delay: 0,
     live: null,
+    after: null,
     confirmClass: "btn-danger",
     xPaths: {
         pickUpShift: "/html/body/div[1]/table[2]/tbody/tr[2]/td/b/a",
@@ -97,22 +98,27 @@ function init() {
 
     // DATE
     if ((argIndex = args.indexOf("-date")) !== -1) {
-       params.tradeboard.date = args[argIndex + 1];
+        params.tradeboard.date = args[argIndex + 1];
     }
 
     // DEBUGGING
     if (args.indexOf("-debug") !== -1) {
-       params.debugging = true;
+        params.debugging = true;
+    }
+
+    // DEBUGGING
+    if ((argIndex = args.indexOf("-after")) !== -1) {
+        params.after = args[argIndex + 1];
     }
 
     // USERNAME
     if ((argIndex = args.indexOf("-u")) !== -1) {
-       params.user.username = args[argIndex + 1];
+        params.user.username = args[argIndex + 1];
     }
 
     // PASSWORD
     if ((argIndex = args.indexOf("-p")) !== -1) {
-       params.user.password = args[argIndex + 1];
+        params.user.password = args[argIndex + 1];
     }
 
     // INIT DRIVER
@@ -126,7 +132,10 @@ function init() {
     console.log(color(colors.FgYellow, "-DEBUG:    "), params.debugging);
 
     // PRINT DATE
-    console.log(color(colors.FgYellow, "-DATE:     "), params.tradeboard.date);
+    console.log(color(colors.FgYellow, "-DATE:     "), ((!params.tradeboard.date) ? "NOT SET" : params.tradeboard.date));
+
+    // PRINT AFTER
+    console.log(color(colors.FgYellow, "-AFTER:    "), params.after + " hour(s)");
 
     // PRINT TIMEOUT
     console.log(color(colors.FgYellow, "-TIMEOUT:  "), (params.timeout / 1000) + ".000s");
@@ -157,6 +166,42 @@ function exitHandler(options, err) {
     }
 }
 
+function processTime(time) {
+    time = time.split(" ");
+    var shiftStart = time[1];
+    //var shiftStop = time[3];
+
+    if (shiftStart.search("am") > 0) {
+        shiftStart = shiftStart.replace("am", "");
+        var offset = shiftStart * 3600000;
+    } else {
+        shiftStart = shiftStart.replace("pm", "");
+        var offset = (parseInt(shiftStart) + 12) * 3600000;
+    }
+
+    var myDate = time[0].split("/");
+    var newDate = new Date(myDate[0] + "," + myDate[1] + "," + myDate[2]);
+
+    var currentTime = (new Date()).getTime();
+    var newShiftTime = new Date((newDate.getTime() + offset));
+
+    console.log("      * Current Date: " + new Date(currentTime));
+    console.log("      * Shift Date:   " + new Date((newDate.getTime() + offset)));
+
+    var x = (newShiftTime - currentTime) / 1000;
+    var seconds = Math.ceil(x % 60);
+    x = x / 60;
+    var minutes = Math.floor(x % 60);
+    x = x / 60;
+    var hours = Math.floor(x % 24);
+    x = x / 24;
+    var days = Math.floor(x);
+
+    console.log("      * Difference:   " + days + " days " + hours + " hours " + minutes + " minutes " + seconds + " seconds.");
+
+    return (newShiftTime - currentTime);
+}
+
 function login() {
     browser.get("https://whentowork.com/logins.htm");
     browser.findElement(webDriver.By.xpath(params.xPaths.usernameInput)).sendKeys(params.user.username).then(function () {
@@ -168,7 +213,7 @@ function login() {
                             getParameterByName("SID", function (sessionID) {
                                 params.user.sessionID = sessionID;
                                 params.url = "https://www5.whentowork.com/cgi-bin/w2wE.dll/emptradeboard?SID=" + params.user.sessionID;
-                                if(params.tradeboard.date)
+                                if (params.tradeboard.date)
                                     params.url += "&Date=" + params.tradeboard.date;
                                 automate();
                             });
@@ -207,20 +252,37 @@ function automate() {
                         browser.switchTo().window(handles[1]).then(function () {
                             browser.findElement(webDriver.By.className("titlebox")).getText().then(function (text) {
 
-                                console.log(color(colors.FgGreen, ("   " + text)));
+                                console.log(color(colors.FgGreen, ("    " + text)));
                                 console.log("------------------------------------------------");
+
+                                var offsetDiff = 0;
+
+                                if (params.after) {
+                                    console.log("\n    " + color(colors.FgYellow, "AFTER") + " param set. Offset is: " + color(colors.FgYellow, (params.after + " hours")));
+                                    if ((offsetDiff = (processTime(text) - params.after * 3600000)) < 0) {
+                                        console.log(color(colors.FgRed, "    UNDER OFFSET TIME"));
+                                        params.confirmClass = "btn-danger"
+                                    }else
+                                        console.log(color(colors.FgGreen, "    OVER OFFSET TIME"));
+                                }
 
                                 browser.findElement(webDriver.By.xpath(params.xPaths.pickUpShift)).then(function (confirmElement) {
                                     confirmElement.click();
 
                                     browser.findElement(webDriver.By.className(params.confirmClass)).then(function (confirmSureElement) {
 
-                                        console.log("\nAttempting Shift Pickup...");
+                                        if (offsetDiff >= 0)
+                                            console.log("\nAttempting Shift Pickup...");
+                                        else
+                                            console.log("\nAborting Shift Pickup...");
 
                                         confirmSureElement.click().then(function () {
                                             browser.getAllWindowHandles().then(function (handles) {
 
-                                                console.log(color(colors.FgGreen, "PICKED UP SHIFT"));
+                                                if (offsetDiff >= 0)
+                                                    console.log(color(colors.FgGreen, "PICKED UP SHIFT"));
+                                                else
+                                                    console.log(color(colors.FgRed, "ABORTED SHIFT PICKUP"));
 
                                                 browser.switchTo().window(handles[0]);
                                                 clearTimeout(refresh);
@@ -270,3 +332,4 @@ init();
 
 // TODO: FIX IF SHIFT ALREADY EXISTS, ADD TO STACK AND TRY NEXT ONE
 // TODO: IF DON'T WANT SHIFT CANCEL AND CLOSE
+// TODO: FIND AFTER TIME...
