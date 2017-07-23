@@ -1,4 +1,4 @@
-var start, refresh, count, args, argIndex, webDriver, browser;
+var dateFormat, start, refresh, count, args, argIndex, webDriver, browser;
 
 var params = {
     url: null,
@@ -18,12 +18,14 @@ var params = {
         loginSubmit: "/html/body/form/div[2]/div[2]/input",
         tradesTab: "//*[@id=\"emptop\"]/tbody/tr/td[5]",
         scheduleTab: "//*[@id=\"emptop\"]/tbody/tr/td[2]",
-        scheduleTable: "/html/body/div[4]/table[2]/tbody/tr[2]/td/table"
+        scheduleTable: "/html/body/div[4]/table[2]/tbody/tr[2]/td/table",
+        scheduleWeekOf: "//*[@id=\"calbtn\"]/nobr/a[2]"
     },
     user: {
         username: null,
         password: null,
-        sessionID: null
+        sessionID: null,
+        schedule: []
     },
     tradeboard: {
         date: null
@@ -56,7 +58,15 @@ var colors = {
     BgWhite: "\x1b[47m"
 };
 
-var days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+var calender = {
+    days: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+    months: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    addDays: function (date, days) {
+        var result = new Date(date);
+        result.setDate(result.getDate() + days);
+        return result;
+    }
+};
 
 function getParameterByName(name, callback) {
     browser.getCurrentUrl().then(function (currentUrl) {
@@ -75,6 +85,11 @@ function color(color, text) {
 
 function init() {
 
+    // LOAD MODULES
+    dateFormat = require('dateformat');
+    webDriver = require('selenium-webDriver');
+
+
     // SET EXIT HANDLERS
     process.on('exit', exitHandler.bind(null, {cleanUp: false}));
     process.on('SIGINT', exitHandler.bind(null, {cleanUp: true}));
@@ -83,8 +98,8 @@ function init() {
     start = new Date();
     args = process.argv.slice(2);
 
-    console.log(color(colors.FgYellow, "\n----------------------------\nWhenToWork Shift Picking Bot"));
-    console.log("Version 1.7 Beta");
+    console.log(color(colors.FgYellow, "\n------------------------------\n  WhenToWork Shift Assistant"));
+    console.log("  Version 1.7 Beta");
 
     // TIMEOUT
     if ((argIndex = args.indexOf("-timeout")) !== -1)
@@ -96,10 +111,10 @@ function init() {
 
     // LIVE
     if (args.indexOf("-live") !== -1) {
-        console.log(color(colors.FgMagenta, "Running in LIVE mode"));
+        console.log(color(colors.FgMagenta, "  Running in LIVE mode"));
         params.classes.confirmPickup = "btn-success";
     } else {
-        console.log(color(colors.FgCyan, "Running in DEBUG mode"));
+        console.log(color(colors.FgCyan, "  Running in DEBUG mode"));
         params.tradeboard.date = "08/13/2017"
     }
 
@@ -125,28 +140,27 @@ function init() {
         params.user.password = args[argIndex + 1];
 
     // INIT DRIVER
-    webDriver = require('selenium-webDriver');
     browser = new webDriver.Builder().usingServer().withCapabilities({'browserName': 'chrome'}).build();
 
     // PRINT USERNAME
-    console.log(color(colors.FgYellow, "-USER:     "), params.user.username);
+    console.log(color(colors.FgYellow, "  -USER:     "), params.user.username);
 
     // PRINT DEBUG
-    console.log(color(colors.FgYellow, "-DEBUG:    "), params.debugging);
+    console.log(color(colors.FgYellow, "  -DEBUG:    "), params.debugging);
 
     // PRINT DATE
-    console.log(color(colors.FgYellow, "-DATE:     "), ((!params.tradeboard.date) ? "NOT SET" : params.tradeboard.date));
+    console.log(color(colors.FgYellow, "  -DATE:     "), ((!params.tradeboard.date) ? "NOT SET" : params.tradeboard.date));
 
     // PRINT AFTER
-    console.log(color(colors.FgYellow, "-AFTER:    "), params.after + " hour(s)");
+    console.log(color(colors.FgYellow, "  -AFTER:    "), params.after + " hour(s)");
 
     // PRINT TIMEOUT
-    console.log(color(colors.FgYellow, "-TIMEOUT:  "), (params.timeout / 1000) + ".000s");
+    console.log(color(colors.FgYellow, "  -TIMEOUT:  "), (params.timeout / 1000) + ".000s");
 
     // PRINT DELAY
-    console.log(color(colors.FgYellow, "-DELAY:    "), (params.delay / 1000) + ".000s");
+    console.log(color(colors.FgYellow, "  -DELAY:    "), (params.delay / 1000) + ".000s");
 
-    console.log(color(colors.FgYellow, "----------------------------"));
+    console.log(color(colors.FgYellow, "------------------------------"));
 
     // START AUTOMATION
     setTimeout(login, params.delay);
@@ -206,59 +220,132 @@ function processTime(time) {
 }
 
 function login() {
+
+    console.log("\nLogging In...");
+
     browser.get("https://whentowork.com/logins.htm");
     browser.findElement(webDriver.By.xpath(params.xPaths.usernameInput)).sendKeys(params.user.username).then(function () {
         browser.findElement(webDriver.By.xpath(params.xPaths.passwordInput)).sendKeys(params.user.password).then(function () {
             browser.findElement(webDriver.By.xpath(params.xPaths.loginSubmit)).then(function (loginSubmit) {
                 loginSubmit.click().then(function () {
+                    browser.findElement(webDriver.By.xpath(params.xPaths.tradesTab)).then(function (tradesTab) {
+                        tradesTab.click().then(function () {
+                            getParameterByName("SID", function (sessionID) {
 
-                    getSchedule();
+                                params.user.sessionID = sessionID;
 
-                    /*browser.findElement(webDriver.By.xpath(params.xPaths.tradesTab)).then(function (tradesTab) {
-                     tradesTab.click().then(function () {
-                     getParameterByName("SID", function (sessionID) {
-                     params.user.sessionID = sessionID;
-                     params.url = "https://www5.whentowork.com/cgi-bin/w2wE.dll/emptradeboard?SID=" + params.user.sessionID;
-                     if (params.tradeboard.date)
-                     params.url += "&Date=" + params.tradeboard.date;
-                     automate();
-                     });
-                     });
-                     });*/
+                                if (params.user.sessionID) {
+                                    console.log(color(colors.FgGreen, ("LOGGED IN AS " + params.user.username)));
+                                    params.url = "https://www5.whentowork.com/cgi-bin/w2wE.dll/emptradeboard?SID=" + params.user.sessionID;
+                                    if (params.tradeboard.date)
+                                        params.url += "&Date=" + params.tradeboard.date;
+
+                                    getSchedule();
+                                    automate();
+                                } else
+                                    console.log(color(colors.FgRed, "LOGIN FAILED"));
+                            });
+                        });
+                    });
                 });
             });
         });
     })
 }
 
+function addToSchedule(weekOf, shiftTime, shiftLocation) {
+
+    var scheduleObject = {
+        weekOf: null,
+        sunday: [],
+        monday: [],
+        tuesday: [],
+        wednesday: [],
+        thursday: [],
+        friday: [],
+        saturday: []
+    };
+
+    var shiftObject = {
+        date: shiftTime,
+        location: shiftLocation.replace("CDA - ", "")
+    };
+
+    scheduleObject.weekOf = weekOf;
+    var myDate = shiftTime.split(" ")[0].split("/");
+    var scheduleDay = calender.days[(new Date(myDate[0] + "," + myDate[1] + "," + myDate[2])).getDay()].toLowerCase();
+
+    var scheduleIndex = -1;
+
+    for (var i = 0; i < params.user.schedule.length; i++)
+        if (weekOf === params.user.schedule[i].weekOf)
+            scheduleIndex = i;
+
+    if (scheduleIndex >= 0)
+        params.user.schedule[scheduleIndex][scheduleDay].push(shiftObject);
+    else {
+        scheduleObject[scheduleDay].push(shiftObject);
+        params.user.schedule.push(scheduleObject);
+    }
+}
+
+function printSchedule() {
+    //TODO: ADDS ONLY FOR FIRST SCHEDULE ADD DATE PARAM TO ALLOW TO CHECK WHICH ONE TO PRINT
+    //TODO: PARSE TIME AND GET TOTAL HOURS TO PRINT STATS
+    console.log(color(colors.FgMagenta, "\n*********** MY SCHEDULE ************"));
+    console.log("\n  Week of: " + dateFormat(new Date(params.user.schedule[0].weekOf), "dS mmmm, yyyy"));
+
+    function printDay(numDay) {
+        var obj = params.user.schedule[0][calender.days[numDay].toLowerCase()];
+        console.log("\n  " + dateFormat(calender.addDays(new Date(dateFormat(new Date(new Date(params.user.schedule[0].weekOf)))), numDay), "dddd") + "\n  " + color(colors.FgMagenta, dateFormat(calender.addDays(new Date(dateFormat(new Date(params.user.schedule[0].weekOf))), numDay), "dS mmmm, yyyy")));
+
+        if (!obj.length)
+            console.log(color(colors.FgRed, "  NO SHIFTS"));
+        else {
+            console.log(color(colors.FgMagenta, "  --------------------------------"));
+            for (var j = 0; j < obj.length; j++) {
+                var text = obj[j].date.split(" ");
+                var spaces = new Array(14 - (text[1] + " - " + text[3]).length).join(" ");
+                var spaces2 = new Array(13 - obj[j].location.length).join(" ");
+                console.log(color(colors.FgMagenta, "  |  ") + text[1] + " - " + text[3] + spaces + color(colors.FgMagenta, ("|  " + obj[j].location) + spaces2 + "|"));
+            }
+        }
+
+        if (obj.length)
+            console.log(color(colors.FgMagenta, "  --------------------------------"));
+    }
+
+    for (var i = 0; i < 7; i++)
+        printDay(i);
+
+    console.log(color(colors.FgMagenta, "\n************************************\n"));
+}
+
 function getSchedule() {
     browser.findElement(webDriver.By.xpath(params.xPaths.scheduleTab)).then(function (scheduleTab) {
         scheduleTab.click().then(function () {
             //TODO: ADD URL PARAM DATE TO CHECK SCHEDULE FOR FUTURE DATE
-            browser.findElement(webDriver.By.xpath(params.xPaths.scheduleTable)).then(function (scheduleTable) {
-                console.log(color(colors.FgMagenta, "\n\n    ********** MY SCHEDULE **********"));
-                scheduleTable.findElements(webDriver.By.css("tr")).then(function (elements) {
-                    elements[1].findElements(webDriver.By.css("td")).then(function (elements2) {
-                        for (var i = 0; i < elements2.length; i++) {
-                            i = function (i) {
-                                elements2[i].findElements(webDriver.By.css("a")).then(function (elements3) {
-                                    console.log(color(colors.FgMagenta, "\n    " + days[i]));
-                                    if (!elements3.length)
-                                        console.log(color(colors.FgRed, "    NO SHIFTS"));
-
-                                    for (var j = 0; j < elements3.length; j++)
-                                        elements3[j].findElement(webDriver.By.css("font")).getText().then(function (text) {
-                                            text = text.split("\n");
-                                            var spaces = new Array(14 - text[1].length).join(" ");
-                                            console.log("    " + color(colors.FgBlue, text[1]) + spaces + "|  " + text[0]);
-                                        });
-                                });
-                                return i;
-                            }(i);
-                        }
+            browser.findElement(webDriver.By.xpath(params.xPaths.scheduleWeekOf)).getText().then(function (scheduleWeek) {
+                var scheduleWeek = (scheduleWeek.replace("Week of ", "").replace(",", ""));
+                browser.findElement(webDriver.By.xpath(params.xPaths.scheduleTable)).then(function (scheduleTable) {
+                    scheduleTable.findElements(webDriver.By.css("tr")).then(function (elements) {
+                        elements[1].findElements(webDriver.By.css("td")).then(function (elements2) {
+                            for (var i = 0; i < elements2.length; i++)
+                                i = function (i) {
+                                    elements2[i].findElements(webDriver.By.css("a")).then(function (elements3) {
+                                        if (elements3.length)
+                                            for (var j = 0; j < elements3.length; j++)
+                                                elements3[j].findElement(webDriver.By.css("font")).getText().then(function (text) {
+                                                    text = text.split("\n");
+                                                    addToSchedule(scheduleWeek, (dateFormat(calender.addDays(new Date(scheduleWeek), i), "mm/dd/yy") + " " + text[1]), text[0]);
+                                                });
+                                    });
+                                    return i;
+                                }(i);
+                        });
+                    }).then(function () {
+                        printSchedule();
                     });
-                }).then(function () {
-                    console.log(color(colors.FgMagenta, "\n    *********************************\n"));
                 });
             });
         });
