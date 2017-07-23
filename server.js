@@ -7,13 +7,18 @@ var params = {
     delay: 0,
     live: null,
     after: null,
-    confirmClass: "btn-danger",
+    classes: {
+        confirmPickup: "btn-danger",
+        shiftTitle: "titlebox"
+    },
     xPaths: {
         pickUpShift: "/html/body/div[1]/table[2]/tbody/tr[2]/td/b/a",
         usernameInput: "/html/body/form/div[2]/div[1]/input[1]",
         passwordInput: "/html/body/form/div[2]/div[1]/input[2]",
         loginSubmit: "/html/body/form/div[2]/div[2]/input",
-        tradesTab: "//*[@id=\"emptop\"]/tbody/tr/td[5]"
+        tradesTab: "//*[@id=\"emptop\"]/tbody/tr/td[5]",
+        scheduleTab: "//*[@id=\"emptop\"]/tbody/tr/td[2]",
+        scheduleTable: "/html/body/div[4]/table[2]/tbody/tr[2]/td/table"
     },
     user: {
         username: null,
@@ -24,17 +29,6 @@ var params = {
         date: null
     }
 };
-
-function getParameterByName(name, callback) {
-    browser.getCurrentUrl().then(function (currentUrl) {
-        name = name.replace(/[\[\]]/g, "\\$&");
-        var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
-            results = regex.exec(currentUrl);
-        if (!results) return null;
-        if (!results[2]) return '';
-        callback(decodeURIComponent(results[2].replace(/\+/g, " ")));
-    });
-}
 
 var colors = {
     FgBlack: "\x1b[30m",
@@ -62,6 +56,19 @@ var colors = {
     BgWhite: "\x1b[47m"
 };
 
+var days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+function getParameterByName(name, callback) {
+    browser.getCurrentUrl().then(function (currentUrl) {
+        name = name.replace(/[\[\]]/g, "\\$&");
+        var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+            results = regex.exec(currentUrl);
+        if (!results) return null;
+        if (!results[2]) return '';
+        callback(decodeURIComponent(results[2].replace(/\+/g, " ")));
+    });
+}
+
 function color(color, text) {
     return (color + text + colors.Reset);
 }
@@ -77,7 +84,7 @@ function init() {
     args = process.argv.slice(2);
 
     console.log(color(colors.FgYellow, "\n----------------------------\nWhenToWork Shift Picking Bot"));
-    console.log("Version 1.4 Beta");
+    console.log("Version 1.7 Beta");
 
     // TIMEOUT
     if ((argIndex = args.indexOf("-timeout")) !== -1)
@@ -90,7 +97,7 @@ function init() {
     // LIVE
     if (args.indexOf("-live") !== -1) {
         console.log(color(colors.FgMagenta, "Running in LIVE mode"));
-        params.confirmClass = "btn-success";
+        params.classes.confirmPickup = "btn-success";
     } else {
         console.log(color(colors.FgCyan, "Running in DEBUG mode"));
         params.tradeboard.date = "08/13/2017"
@@ -102,24 +109,20 @@ function init() {
     }
 
     // DEBUGGING
-    if (args.indexOf("-debug") !== -1) {
+    if (args.indexOf("-debug") !== -1)
         params.debugging = true;
-    }
 
     // DEBUGGING
-    if ((argIndex = args.indexOf("-after")) !== -1) {
+    if ((argIndex = args.indexOf("-after")) !== -1)
         params.after = args[argIndex + 1];
-    }
 
     // USERNAME
-    if ((argIndex = args.indexOf("-u")) !== -1) {
+    if ((argIndex = args.indexOf("-u")) !== -1)
         params.user.username = args[argIndex + 1];
-    }
 
     // PASSWORD
-    if ((argIndex = args.indexOf("-p")) !== -1) {
+    if ((argIndex = args.indexOf("-p")) !== -1)
         params.user.password = args[argIndex + 1];
-    }
 
     // INIT DRIVER
     webDriver = require('selenium-webDriver');
@@ -208,21 +211,58 @@ function login() {
         browser.findElement(webDriver.By.xpath(params.xPaths.passwordInput)).sendKeys(params.user.password).then(function () {
             browser.findElement(webDriver.By.xpath(params.xPaths.loginSubmit)).then(function (loginSubmit) {
                 loginSubmit.click().then(function () {
-                    browser.findElement(webDriver.By.xpath(params.xPaths.tradesTab)).then(function (tradesTab) {
-                        tradesTab.click().then(function () {
-                            getParameterByName("SID", function (sessionID) {
-                                params.user.sessionID = sessionID;
-                                params.url = "https://www5.whentowork.com/cgi-bin/w2wE.dll/emptradeboard?SID=" + params.user.sessionID;
-                                if (params.tradeboard.date)
-                                    params.url += "&Date=" + params.tradeboard.date;
-                                automate();
-                            });
-                        });
-                    });
+
+                    getSchedule();
+
+                    /*browser.findElement(webDriver.By.xpath(params.xPaths.tradesTab)).then(function (tradesTab) {
+                     tradesTab.click().then(function () {
+                     getParameterByName("SID", function (sessionID) {
+                     params.user.sessionID = sessionID;
+                     params.url = "https://www5.whentowork.com/cgi-bin/w2wE.dll/emptradeboard?SID=" + params.user.sessionID;
+                     if (params.tradeboard.date)
+                     params.url += "&Date=" + params.tradeboard.date;
+                     automate();
+                     });
+                     });
+                     });*/
                 });
             });
         });
     })
+}
+
+function getSchedule() {
+    browser.findElement(webDriver.By.xpath(params.xPaths.scheduleTab)).then(function (scheduleTab) {
+        scheduleTab.click().then(function () {
+            //TODO: ADD URL PARAM DATE TO CHECK SCHEDULE FOR FUTURE DATE
+            browser.findElement(webDriver.By.xpath(params.xPaths.scheduleTable)).then(function (scheduleTable) {
+                console.log(color(colors.FgMagenta, "\n\n    ********** MY SCHEDULE **********"));
+                scheduleTable.findElements(webDriver.By.css("tr")).then(function (elements) {
+                    elements[1].findElements(webDriver.By.css("td")).then(function (elements2) {
+                        for (var i = 0; i < elements2.length; i++) {
+                            i = function (i) {
+                                elements2[i].findElements(webDriver.By.css("a")).then(function (elements3) {
+                                    console.log(color(colors.FgMagenta, "\n    " + days[i]));
+                                    if (!elements3.length)
+                                        console.log(color(colors.FgRed, "    NO SHIFTS"));
+
+                                    for (var j = 0; j < elements3.length; j++)
+                                        elements3[j].findElement(webDriver.By.css("font")).getText().then(function (text) {
+                                            text = text.split("\n");
+                                            var spaces = new Array(14 - text[1].length).join(" ");
+                                            console.log("    " + color(colors.FgBlue, text[1]) + spaces + "|  " + text[0]);
+                                        });
+                                });
+                                return i;
+                            }(i);
+                        }
+                    });
+                }).then(function () {
+                    console.log(color(colors.FgMagenta, "\n    *********************************\n"));
+                });
+            });
+        });
+    });
 }
 
 function automate() {
@@ -250,7 +290,7 @@ function automate() {
 
                     browser.getAllWindowHandles().then(function (handles) {
                         browser.switchTo().window(handles[1]).then(function () {
-                            browser.findElement(webDriver.By.className("titlebox")).getText().then(function (text) {
+                            browser.findElement(webDriver.By.className(params.classes.shiftTitle)).getText().then(function (text) {
 
                                 console.log(color(colors.FgGreen, ("    " + text)));
                                 console.log("------------------------------------------------");
@@ -261,15 +301,15 @@ function automate() {
                                     console.log("\n    " + color(colors.FgYellow, "AFTER") + " param set. Offset is: " + color(colors.FgYellow, (params.after + " hours")));
                                     if ((offsetDiff = (processTime(text) - params.after * 3600000)) < 0) {
                                         console.log(color(colors.FgRed, "    UNDER OFFSET TIME"));
-                                        params.confirmClass = "btn-danger"
-                                    }else
+                                        params.classes.confirmPickup = "btn-danger"
+                                    } else
                                         console.log(color(colors.FgGreen, "    OVER OFFSET TIME"));
                                 }
 
                                 browser.findElement(webDriver.By.xpath(params.xPaths.pickUpShift)).then(function (confirmElement) {
                                     confirmElement.click();
 
-                                    browser.findElement(webDriver.By.className(params.confirmClass)).then(function (confirmSureElement) {
+                                    browser.findElement(webDriver.By.className(params.classes.confirmPickup)).then(function (confirmSureElement) {
 
                                         if (offsetDiff >= 0)
                                             console.log("\nAttempting Shift Pickup...");
@@ -294,7 +334,7 @@ function automate() {
                                                     setTimeout(function () {
                                                         console.log(color(colors.FgGreen, "RESTARTED\n"));
                                                         process.exit();
-                                                    }, 5000);
+                                                    }, 1000);
                                                 });
 
                                             });
@@ -332,4 +372,4 @@ init();
 
 // TODO: FIX IF SHIFT ALREADY EXISTS, ADD TO STACK AND TRY NEXT ONE
 // TODO: IF DON'T WANT SHIFT CANCEL AND CLOSE
-// TODO: FIND AFTER TIME...
+// TODO: COPY SCHEDULE TO MYIIT AND SUBMIT TIMESHEET
