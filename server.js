@@ -183,27 +183,82 @@ function exitHandler(options, err) {
     }
 }
 
-function processTime(time) {
+function parseTime(time) {
     time = time.split(" ");
     var shiftStart = time[1];
-    //var shiftStop = time[3];
+    var shiftStop = time[3];
 
     if (shiftStart.search("am") > 0) {
         shiftStart = shiftStart.replace("am", "");
-        var offset = shiftStart * 3600000;
+        var startOffset = parseInt(shiftStart) % 12;
+
+        if (shiftStop.search("am") > 0) {
+            shiftStop = shiftStop.replace("am", "");
+            var stopOffset = shiftStop;
+        } else {
+            shiftStop = shiftStop.replace("pm", "");
+            var stopOffset = shiftStop;
+        }
+
     } else {
         shiftStart = shiftStart.replace("pm", "");
-        var offset = (parseInt(shiftStart) + 12) * 3600000;
+        var startOffset = parseInt(shiftStart) % 12;
+
+        if (shiftStop.search("am") > 0) {
+            shiftStop = shiftStop.replace("am", "");
+            var stopOffset = shiftStop;
+        } else {
+            shiftStop = shiftStop.replace("pm", "");
+            var stopOffset = shiftStop;
+        }
+
+    }
+
+
+    //var myDate = time[0].split("/");
+    //var newDate = new Date(myDate[0] + "," + myDate[1] + "," + myDate[2]);
+
+    return (stopOffset - startOffset);
+}
+
+
+function processTime(time) {
+    time = time.split(" ");
+    var shiftStart = time[1];
+    var shiftStop = time[3];
+
+    if (shiftStart.search("am") > 0) {
+        shiftStart = shiftStart.replace("am", "");
+        var startOffset = shiftStart * 3600000;
+
+        if (shiftStop.search("am") > 0) {
+            shiftStop = shiftStop.replace("am", "");
+            var stopOffset = shiftStop * 3600000;
+        }
+
+    } else {
+        shiftStart = shiftStart.replace("pm", "");
+        var startOffset = (parseInt(shiftStart) + 12) * 3600000;
+
+        if (shiftStop.search("am") > 0) {
+            shiftStop = shiftStop.replace("am", "");
+            var stopOffset = (parseInt(shiftStop) + 24) * 3600000;
+        }
+    }
+
+    if (shiftStop.search("pm") > 0) {
+        shiftStop = shiftStop.replace("pm", "");
+        var stopOffset = (parseInt(shiftStop) + 12) * 3600000;
     }
 
     var myDate = time[0].split("/");
     var newDate = new Date(myDate[0] + "," + myDate[1] + "," + myDate[2]);
 
     var currentTime = (new Date()).getTime();
-    var newShiftTime = new Date((newDate.getTime() + offset));
+    var newShiftTime = new Date((newDate.getTime() + startOffset));
 
     console.log("      * Current Date: " + new Date(currentTime));
-    console.log("      * Shift Date:   " + new Date((newDate.getTime() + offset)));
+    console.log("      * Shift Date:   " + new Date((newDate.getTime() + startOffset)));
 
     var x = (newShiftTime - currentTime) / 1000;
     var seconds = Math.ceil(x % 60);
@@ -291,33 +346,36 @@ function addToSchedule(weekOf, shiftTime, shiftLocation) {
 
 function printSchedule() {
     //TODO: ADDS ONLY FOR FIRST SCHEDULE ADD DATE PARAM TO ALLOW TO CHECK WHICH ONE TO PRINT
-    //TODO: PARSE TIME AND GET TOTAL HOURS TO PRINT STATS
     console.log(color(colors.FgMagenta, "\n*********** MY SCHEDULE ************"));
     console.log("\n  Week of: " + dateFormat(new Date(params.user.schedule[0].weekOf), "dS mmmm, yyyy"));
 
+    var totalHourCount = 0;
+
     function printDay(numDay) {
         var obj = params.user.schedule[0][calender.days[numDay].toLowerCase()];
-        console.log("\n  " + dateFormat(calender.addDays(new Date(dateFormat(new Date(new Date(params.user.schedule[0].weekOf)))), numDay), "dddd") + "\n  " + color(colors.FgMagenta, dateFormat(calender.addDays(new Date(dateFormat(new Date(params.user.schedule[0].weekOf))), numDay), "dS mmmm, yyyy")));
 
-        if (!obj.length)
-            console.log(color(colors.FgRed, "  NO SHIFTS"));
-        else {
-            console.log(color(colors.FgMagenta, "  --------------------------------"));
-            for (var j = 0; j < obj.length; j++) {
-                var text = obj[j].date.split(" ");
-                var spaces = new Array(14 - (text[1] + " - " + text[3]).length).join(" ");
-                var spaces2 = new Array(13 - obj[j].location.length).join(" ");
-                console.log(color(colors.FgMagenta, "  |  ") + text[1] + " - " + text[3] + spaces + color(colors.FgMagenta, ("|  " + obj[j].location) + spaces2 + "|"));
-            }
+        var hourCount = 0;
+        var spaces0 = dateFormat(calender.addDays(new Date(dateFormat(new Date(params.user.schedule[0].weekOf))), numDay), "dS mmmm, yyyy").toString().length;
+        var spaces1 = dateFormat(calender.addDays(new Date(dateFormat(new Date(new Date(params.user.schedule[0].weekOf)))), numDay), "dddd").toString().length;
+        var spaces2 = new Array(33 - spaces0 - spaces1).join(" ");
+
+        console.log("\n  " + dateFormat(calender.addDays(new Date(dateFormat(new Date(new Date(params.user.schedule[0].weekOf)))), numDay), "dddd") + spaces2 + color(colors.FgMagenta, dateFormat(calender.addDays(new Date(dateFormat(new Date(params.user.schedule[0].weekOf))), numDay), "dS mmmm, yyyy")));
+        console.log(color(colors.FgMagenta, "  --------------------------------"));
+        for (var j = 0; j < obj.length; j++) {
+            hourCount += parseTime(obj[j].date);
+            var text = obj[j].date.split(" ");
+            var spaces3 = new Array(14 - (text[1] + " - " + text[3]).length).join(" ");
+            var spaces4 = new Array(13 - obj[j].location.length).join(" ");
+            console.log(color(colors.FgMagenta, "  |  ") + text[1] + " - " + text[3] + spaces3 + color(colors.FgMagenta, ("|  " + obj[j].location) + spaces4 + "|"));
         }
-
-        if (obj.length)
-            console.log(color(colors.FgMagenta, "  --------------------------------"));
+        console.log(color(colors.FgMagenta, "  --------------------------------"));
+        console.log(color(colors.FgYellow, ("  HOURS: " + hourCount)));
+        totalHourCount += hourCount;
     }
 
-    for (var i = 0; i < 7; i++)
-        printDay(i);
+    for (var i = 0; i < 7; i++) printDay(i);
 
+    console.log("\n  TOTAL HOURS: " + totalHourCount);
     console.log(color(colors.FgMagenta, "\n************************************\n"));
 }
 
