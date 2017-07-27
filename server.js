@@ -221,6 +221,14 @@ function parseTime(time) {
     return (stopOffset - startOffset);
 }
 
+function checkSchedule(time){
+
+    // TODO: Implement Schedule Checker
+
+
+
+    return false;
+}
 
 function processTime(time) {
     time = time.split(" ");
