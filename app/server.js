@@ -1,3 +1,31 @@
+var express = require('express');
+var app = express();
+var path = require('path');
+global.appRoot = path.resolve(__dirname);
+
+app.get('/', function (req, res) {
+    res.sendFile('index.html', {"root": appRoot});
+});
+
+app.post('/init', function (req, res) {
+    res.send("LOGIN REQUESTED \n   USERNAME: " + req.query.username + "\n   PASSWORD: " + req.query.password);
+
+    var myparams = {
+        username: req.query.username,
+        password: req.query.password
+    };
+
+    init2(myparams);
+});
+
+app.post('/stop', function (req, res) {
+    res.send("LOGOUT REQUESTED");
+});
+
+app.listen(5000, function () {
+    console.log((new Date()) + "WTW Assist Server is listening on port 5000");
+});
+
 var dateFormat, start, refresh, count, args, argIndex, webDriver, browser;
 
 var params = {
@@ -83,7 +111,13 @@ function color(color, text) {
     return (color + text + colors.Reset);
 }
 
-function init() {
+function init2(myParams){
+    console.log(myParams);
+}
+
+function init(params) {
+
+
 
     // LOAD MODULES
     dateFormat = require('dateformat');
@@ -99,7 +133,7 @@ function init() {
     args = process.argv.slice(2);
 
     console.log(color(colors.FgYellow, "\n------------------------------\n  WhenToWork Shift Assistant"));
-    console.log("  Version 1.7 Beta");
+    console.log("  Version 2.0 Beta");
 
     // TIMEOUT
     if ((argIndex = args.indexOf("-timeout")) !== -1)
@@ -221,12 +255,8 @@ function parseTime(time) {
     return (stopOffset - startOffset);
 }
 
-function checkSchedule(time){
-
+function checkSchedule(time) {
     // TODO: Implement Schedule Checker
-
-
-
     return false;
 }
 
@@ -520,8 +550,6 @@ function getElement(browser, sourceIndex, callback) {
         });
     })
 }
-
-init();
 
 // TODO: FIX IF SHIFT ALREADY EXISTS, ADD TO STACK AND TRY NEXT ONE
 // TODO: IF DON'T WANT SHIFT CANCEL AND CLOSE
