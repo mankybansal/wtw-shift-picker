@@ -1,31 +1,3 @@
-var express = require('express');
-var app = express();
-var path = require('path');
-global.appRoot = path.resolve(__dirname);
-
-app.get('/', function (req, res) {
-    res.sendFile('index.html', {"root": appRoot});
-});
-
-app.post('/init', function (req, res) {
-    res.send("LOGIN REQUESTED \n   USERNAME: " + req.query.username + "\n   PASSWORD: " + req.query.password);
-
-    var myparams = {
-        username: req.query.username,
-        password: req.query.password
-    };
-
-    init2(myparams);
-});
-
-app.post('/stop', function (req, res) {
-    res.send("LOGOUT REQUESTED");
-});
-
-app.listen(5000, function () {
-    console.log((new Date()) + "WTW Assist Server is listening on port 5000");
-});
-
 var dateFormat, start, refresh, count, args, argIndex, webDriver, browser;
 
 var params = {
@@ -35,6 +7,14 @@ var params = {
     delay: 0,
     live: null,
     after: null,
+    building: {
+        msv: null,
+        gunsaulus: null,
+        ssvn: null,
+        ssvs: null,
+        ssvm: null,
+        carman: null
+    },
     classes: {
         confirmPickup: "btn-danger",
         shiftTitle: "titlebox"
@@ -111,18 +91,11 @@ function color(color, text) {
     return (color + text + colors.Reset);
 }
 
-function init2(myParams){
-    console.log(myParams);
-}
-
-function init(params) {
-
-
+function init() {
 
     // LOAD MODULES
     dateFormat = require('dateformat');
     webDriver = require('selenium-webDriver');
-
 
     // SET EXIT HANDLERS
     process.on('exit', exitHandler.bind(null, {cleanUp: false}));
@@ -149,7 +122,7 @@ function init(params) {
         params.classes.confirmPickup = "btn-success";
     } else {
         console.log(color(colors.FgCyan, "  Running in DEBUG mode"));
-        params.tradeboard.date = "08/13/2017"
+        params.tradeboard.date = "09/03/2017"
     }
 
     // DATE
@@ -173,6 +146,31 @@ function init(params) {
     if ((argIndex = args.indexOf("-p")) !== -1)
         params.user.password = args[argIndex + 1];
 
+    // BUILDING
+    if ((argIndex = args.indexOf("-building")) !== -1) {
+        params.tradeboard.date = args[argIndex + 1];
+        switch (args[argIndex + 1]) {
+            case "gunsaulus":
+                params.building.gunsaulus = true;
+                break;
+            case "carman":
+                params.building.carman = true;
+                break;
+            case "ssvn":
+                params.building.ssvn = true;
+                break;
+            case "ssvm":
+                params.building.ssvm = true;
+                break;
+            case "ssvs":
+                params.building.ssvs = true;
+                break;
+            case "msv":
+                params.building.msv = true;
+                break;
+        }
+    }
+
     // INIT DRIVER
     browser = new webDriver.Builder().usingServer().withCapabilities({'browserName': 'chrome'}).build();
 
@@ -193,6 +191,9 @@ function init(params) {
 
     // PRINT DELAY
     console.log(color(colors.FgYellow, "  -DELAY:    "), (params.delay / 1000) + ".000s");
+
+    // PRINT BUILDING
+    console.log(color(colors.FgYellow, "  -BUILDING: "), params.building);
 
     console.log(color(colors.FgYellow, "------------------------------"));
 
@@ -448,6 +449,34 @@ function getSchedule() {
     });
 }
 
+function processBuilding(text){
+
+    var text = text.split("-");
+    var building = text[1].remove(" ").toLowerCase();
+
+    switch (building[1]) {
+        case "gunsaulus":
+            if(params.building.gunsaulus) return true;
+            break;
+        case "carman":
+            if(params.building.carman) return true;
+            break;
+        case "ssvnorth":
+            if(params.building.ssvn) return true;
+            break;
+        case "ssvmiddle":
+            if(params.building.ssvm) return true;
+            break;
+        case "ssvsouth":
+            if(params.building.ssvs) return true;
+            break;
+        case "msv":
+            if(params.building.msv) return true;
+            break;
+        default: return false;
+    }
+}
+
 function automate() {
 
     browser.get(params.url);
@@ -468,6 +497,8 @@ function automate() {
                     myElement.getText().then(function (text) {
                         console.log(" " + (myIndex - 1) + ". " + text);
                     });
+
+                    processBuilding(text);
 
                     myElement.click();
 
@@ -550,6 +581,8 @@ function getElement(browser, sourceIndex, callback) {
         });
     })
 }
+
+init();
 
 // TODO: FIX IF SHIFT ALREADY EXISTS, ADD TO STACK AND TRY NEXT ONE
 // TODO: IF DON'T WANT SHIFT CANCEL AND CLOSE
